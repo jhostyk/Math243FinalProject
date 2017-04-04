@@ -6,52 +6,38 @@
 
 
 import copy
+import numpy as np
 
 
-# class Node(object):
-class Node(object):
-
-	def __init__(self, fitness, deathrate, genotype):
-		# Fitness and deathrate are doubles
-		self.fitness = fitness
-		self.deathrate = deathrate
-		# Can be wildgenotype, drive, reverse, immune.
-		self.genotype = genotype
-
-	def __str__(self):
-		return "{}{}-{}".format(self.genotype, self.fitness, self.deathrate)
-
-	def updateGenotype(self, newType):
-		self.genotype = newType
-
+fitness = {"AA" = 0.5, "AD" = 0.5, "DD" = 0.5}
+deathRates = {"AA" = 0.8, "AD" = 0.8, "DD" = 0.8}
 
 class Graph(object):
 
 	def __init__(self):
-		# The standard graph is a dictionary of {Node: neighbors}
-		# neighbors is array of [(neighbor, weightFromNodeToNeighbor)]. 
-		self.graph = {}
+		self.genotypes = []
+		self.totalNodes = None
 		self.totalFitness = 0.0
+		self.weights = np.matrix()
+		self.selectionMatrix = None
 		self.alleleCounts = {}
 
 	def __str__(self):
 		s = ""
-		for node in self.graph:
-			s += "Node {} with neighbors ".format(node)
-			for neigh, weight in self.graph[node]:
-				s += str(neigh) + " ({}); ".format(weight)
+		for geno, i in enumerate(self.genotypes):
+			s += geno + ". Neighbors: "
+			for j in range(self.totalNodes):
+				if weights[i][j] != 0.0:
+					s += self.genotypes[j]
 			s += "\n"
 		return s
 
 
+	# Not sure if this is still necessary; maybe implement later.
 	def addNode(self, node, neighbors):
-		self.graph[node] = neighbors
-		self.totalFitness += node.fitness
-		if node.genotype not in self.alleleCounts:
-			self.alleleCounts[node.genotype] = 0
-		self.alleleCounts[node.genotype] += 1
+		return
 
-	def updateNodeGenotype(self, node, newGenotype):
+	def updateNodeGenotype(self, nodeIndex, newGenotype):
 		self.alleleCounts[node.genotype] -= 1
 		node.updateGenotype(newGenotype)
 		if newGenotype not in self.alleleCounts:
@@ -69,24 +55,11 @@ class Graph(object):
 	def updateTotalFitness(self, difference):
 		self.totalFitness += difference
 
-class LatticeNode(Node):
-
-	# Coords is [row, col]
-	def __init__(self, coords, fitness, deathrate, genotype):
-		Node.__init__(self, fitness, deathrate, genotype)
-		self.coords = coords
-
-	def __str__(self):
-		[x,y] = self.coords
-		return "{}{}({},{})".format(self.genotype, self.fitness,x,y)
-
 class Lattice(Graph):
 
 	def __init__(self, rows, cols):
 		Graph.__init__(self)
-
-		# Doing too much work - making both a matrix and the usual Graph dict.
-		# Not sure which one should be dropped.
+		
 		self.lattice = [[0]*cols for i in range(rows)]
 		fitness = 0.5
 		genotype = "AA"
@@ -136,4 +109,6 @@ class Bipartite(Graph):
 		Graph.__init__(self)
 
 
-
+if __name__ == '__main__':
+	a = np.matrix([[1,2],[3,4]])
+	print np.multiply(a,a)

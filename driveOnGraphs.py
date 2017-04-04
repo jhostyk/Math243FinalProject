@@ -4,7 +4,6 @@
 
 ### driveOnGraphs: runs the simulations
 
-import numpy as np
 import copy
 import sys
 
@@ -52,6 +51,7 @@ def matingOutcome(A, B):
 # def chooseRandNode(group, )
 
 def runGeneration(Graph):
+	# Go through all possible combinations 
 	allProbs = np.array([node.fitness for node in Graph.graph])
 	normalizedProbs = allProbs/Graph.totalFitness
 	randNode = np.random.choice(Graph.graph.keys(), size=1, p = normalizedProbs)[0]
