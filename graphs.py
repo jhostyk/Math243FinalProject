@@ -33,39 +33,34 @@ class Graph(object):
 		return s
 
 
-	# Not sure if this is still necessary; maybe implement later.
-	def addNode(self, node, neighbors):
-		return
+	# # Not sure if this is still necessary; maybe implement later.
+	# def addNode(self, node, neighbors):
+	# 	return
 
-	def updateNodeGenotype(self, nodeIndex, newGenotype):
-		self.alleleCounts[node.genotype] -= 1
-		node.updateGenotype(newGenotype)
-		if newGenotype not in self.alleleCounts:
-			self.alleleCounts[newGenotype] = 0
-		self.alleleCounts[newGenotype] += 1		
+	# def updateNodeGenotype(self, nodeIndex, newGenotype):
+	# 	self.alleleCounts[node.genotype] -= 1
+	# 	node.updateGenotype(newGenotype)
+	# 	if newGenotype not in self.alleleCounts:
+	# 		self.alleleCounts[newGenotype] = 0
+	# 	self.alleleCounts[newGenotype] += 1		
 
 
-	def calculateTotalFitness(self):
-		totalFitness = 0.0
-		for node in self.graph:
-			totalFitness += node.fitness
-		self.totalFitness = totalFitness
-		return totalFitness
+	# def calculateTotalFitness(self):
+	# 	totalFitness = 0.0
+	# 	for node in self.graph:
+	# 		totalFitness += node.fitness
+	# 	self.totalFitness = totalFitness
+	# 	return totalFitness
 
-	def updateTotalFitness(self, difference):
-		self.totalFitness += difference
+	# def updateTotalFitness(self, difference):
+	# 	self.totalFitness += difference
 
 class Lattice(Graph):
 
 	def __init__(self, rows, cols):
 		Graph.__init__(self)
 		
-		self.lattice = [[0]*cols for i in range(rows)]
-		fitness = 0.5
-		genotype = "AA"
-		for r in range(rows):
-			for c in range(cols):
-				self.lattice[r][c] = LatticeNode([r,c], fitness, deathrate, genotype)
+
 		for r in range(rows):
 			for c in range(cols):
 				neighbors = []

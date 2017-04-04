@@ -13,10 +13,21 @@ import matplotlib.pyplot as plt
 import plotly.plotly as py
 from plotly.graph_objs import *
 
-py.sign_in('jhostyk', 'i9GvNlCOHgLLRsbT0Djw')
-
+import plotlySignIn
+ 
 # The probability that a Driven gene produces a Driven offspring
 P = 1.0
+
+fitness = {"AA": 1.0, "AD": 1.0, "DD": 1.0}
+deathRates = {"AA": 1.0, "AD": 1.0, "DD": 1.0}
+
+
+
+def findTotalFitness(genotypes):
+	totalFitness = 0.0
+	for g in genotypes:
+		totalFitness += fitness[g]
+	return totalFitness
 
 # What offspring will be produced by A and B?
 def matingOutcome(A, B):
@@ -48,78 +59,71 @@ def matingOutcome(A, B):
 	return offspring
 
 
-# def chooseRandNode(group, )
+# Takes in the array of genotypes, and the number of individuals in the population.
 
-def runGeneration(Graph):
-	# Go through all possible combinations 
-	allProbs = np.array([node.fitness for node in Graph.graph])
-	normalizedProbs = allProbs/Graph.totalFitness
-	randNode = np.random.choice(Graph.graph.keys(), size=1, p = normalizedProbs)[0]
+def runGeneration(genotypes, weights, N):
+	totalFitness = findTotalFitness(genotypes)
+	matingProbs = {}
+	# Go through the upper-right triangle of the matrix:
+	for i in range(N):
+		for j in range(i+1, N):
+			matingProb = fitness[genotypes[i]]*fitness[genotypes[j]]*weights[i][j]
+			matingProbs[(i, j)] = matingProb
 
-	# Now that we've chosen a random node from the graph,
-	# we choose a random neighbor of that node.
-	neighbors = [n for n in Graph.graph[randNode]]
-	mateProbs = np.array([neighbor.fitness for neighbor in neighbors])
-	normalizedProbs = mateProbs/sum(mateProbs)
-	mate = np.random.choice(neighbors, size=1, p = normalizedProbs)[0]
+	# Now we have a dictionary that matches every pair with its probability of being a mate.
+	# Not normalized probability though.
 
-	# We've got the two neighboring individuals. What ofspring do they produce?
-	child = matingOutcome(randNode.genotype, mate.genotype)
+	# Choose a random pair:
 
-	# We now choose one to die, from all the neighbors of both mates.
-	neighbors.remove(mate)
-	for neighbor in Graph.graph[mate]:
-		if neighbor not in neighbors and neighbor != randNode:
-			neighbors.append(neighbor)
-	deathProbs = np.array([neighbor.fitness for neighbor in neighbors])
-	normalizedProbs = deathProbs/sum(deathProbs)
-	toDie = np.random.choice(neighbors, size=1, p = normalizedProbs)[0]
+	normalizedMatingProbs = np.array(matingProbs.values())/sum(matingProbs.values())
+	index = np.random.choice(range(len(matingProbs.keys())), size=1, p = normalizedMatingProbs)[0]
+	iRandMate, jRandMate = matingProbs.keys()[index]
 
-	Graph.updateNodeGenotype(toDie, child)
+	childGenotype = matingOutcome(genotypes[iRandMate], genotypes[jRandMate])
 
-	return Graph.alleleCounts
+	# Find the neighbor to die:
+	deathProbs = {}
 
+	for k in range(N):
+		deathProbs[k] = deathRates[genotypes[k]]* (weights[iRandMate][k] + weights[jRandMate][k])
+	normalizedDeathProbs = np.array(deathProbs.values())/sum(deathProbs.values())
+	toDie = np.random.choice(range(N), size=1, p = normalizedDeathProbs)[0]
 
-def startDrive(graph, node):
-	graph.updateNodeGenotype(node, "DD")
-	return
+	genotypes[toDie] = childGenotype
 
-# Taking in a dict where the keys are diploid genotypes, e.g. "AD".
-# We want to see how many many "D"s there are.
-def getDriveAlleleFreq(dic):
-	freq = 0.0
-	for key in dic:
-		if key == "AD":
-			freq += 1 * dic[key]
-		if key == "DD":
-			freq += 2 * dic[key]
-	return freq
+	return genotypes
 
+def getDriveAlleleFreq(genotypes):
+	numAlleles = 0.0
+	for geno in genotypes:
+		if geno == "AD":
+			numAlleles += 1
+		if geno == "DD":
+			numAlleles += 2
+	return numAlleles/(2*len(genotypes))
 
-# def run1Simulation(G, gens):
-def run1Simulation(G):
-	# For Lattice:
-	# startDrive(G, G.lattice[4][4])
+def oneSimulation():
+	# Fully-connected graph of 5 nodes:
+	N = 100
+	weights = [[1]*N for i in range(N)]
+	genotypes = ["AA"]*N
 
-	# For Moran:
-	startDrive(G, G.graph.keys()[0])
-	totalNodes = 2.0 * len(G.graph)
+	# Start Drive:
+	genotypes[0] = "DD"
+
 	DFreqs = []
-	currentFreq = -1.0
+	DFreq = -1.0
 	gen = 0
-	# for i in range(gens):
-	while(currentFreq != 0.0 and currentFreq != 1.0):
+	while(DFreq != 0.0 and DFreq != 1.0):
 		gen += 1
-		alleleCounts = runGeneration(G)
-		DFreq = getDriveAlleleFreq(alleleCounts)
-		currentFreq = DFreq/totalNodes
-		DFreqs.append(currentFreq)
-	Fixed = currentFreq == 1.0
+		newGenotypes = runGeneration(genotypes, weights, N)
+		DFreq = getDriveAlleleFreq(newGenotypes)
+		DFreqs.append(DFreq)
+
+	Fixed = DFreq == 1.0
 	return DFreqs, gen, Fixed
 
-# Repeat the array's last value so that the array is the correct length.
-# We're not making copies of the arrays, so the array itself should be edited.
-# (Nothing needs to be returned.) Using this for graphing.
+# For graphing purposes. Want the lines to continue until the longest simulation has finished.
 def extendArray(arr, length):
 	curLength = len(arr)
 	last = arr[curLength-1]
@@ -127,119 +131,42 @@ def extendArray(arr, length):
 		arr.append(last)
 	return
 
-
 def plotFreqs(arrays):
 	data = []
 	for array in arrays:
 		line = Scatter(x=range(len(array)), y=array)
 		data.append(line)
-	title = 'Drive Frequency. Moran Process, 100 Individuals, 20 Simulations'
+	title = 'Drive Frequency. Moran Process, 100 Individuals, 20 Simulations, 4-4-17'
 	layout = Layout(title = title, xaxis=XAxis(autorange=True, title = 'Generations'),yaxis=YAxis(autorange=True, title = "Drive Allele Frequency"),showlegend = False)
 	fig = Figure(data=data, layout=layout)
 	unique_url = py.plot(fig, filename=title)
 	return
 
-def runSimulations(reps):
-	freqsArray = []
-	gensArray = []
-	numFixed = 0.0
-	for i in range(reps):
-		sys.stdout.write("Simulation #{}\r".format(i))
-		G = FullyConnected(100, 0.5, "AA")
-
-		# G = Lattice(10,10)
-		freqs, gen, fixed = run1Simulation(G)
-		# freqsArray.append(freqs)
-		# gensArray.append(gen)
-		numFixed += fixed
-		sys.stdout.flush()
-	print 
-
-	fixationRate = numFixed/reps
-	print "Fixation Rate: ", fixationRate
-	# Manage the results:
-	# length = max(gensArray)
-	# for array in freqsArray:
-	# 	extendArray(array, length)
-	# plotFreqs(freqsArray)
-	return
-
-
-
 if __name__ == '__main__':
+	# DFreqs, gen, Fixed = oneSimulation()
+	# print "Fixed? ", Fixed
+	# print "Gens: ", gen
+	# print "DFreqs: ", DFreqs
+	numSims = 20
+	numFixed = 0.0
+	arrayOfDFreqs = []
+	for i in range(numSims):
+		print "Sim # {}\r".format(i),
+		DFreqs, gen, Fixed = oneSimulation()
+		numFixed += Fixed
+		arrayOfDFreqs.append(DFreqs)
+		sys.stdout.flush()
 
-	# # Testing nodes:
-	# a = Node(1.0, "W")
-	# b = Node(2.0, "D")
-	# c = Node(3.0, "R")
+	print "Fixation prob: ", numFixed/numSims
 
-	# print a
-	# dic = {a: [b,c]}	
-	# dic[b] = a
-	# a.fitness = 4.0
-	# print a.fitness
-	# print dic[b].fitness
-	# for x in dic.keys():
-	# 	print x.fitness
-	# print dic[b].fitness
+	maxLength = 0
+	for array in arrayOfDFreqs:
+		if len(array) > maxLength:
+			maxLength = len(array)
+	for array in arrayOfDFreqs:
+		extendArray(array, maxLength)
+	plotFreqs(arrayOfDFreqs)
 
-	# # Testing graph:
-	# a = Node(1.0, "W")
-	# b = Node(2.0, "D")
-	# c = Node(3.0, "R")
-	# A = Graph()
-	# A.addNode(a, [b,c])
-	# A.addNode(b, [c])
-	# A.addNode(c, [a])
-
-	# A.calculateTotalFitness()
-	# print A.totalFitness
-
-
-	# # Testing Lattice:
-	# L = Lattice(2,2)
-	# print L
-	# print L.totalFitness
-
-
-	# Testing random choice:
-	# L = Lattice(2,2)
-	# print randNode.coords
-
-
-	# # Test Mating Outcome:
-	# assert(matingOutcome("AA", "AA") == "AA")
-	# assert(matingOutcome("DD", "DD") == "DD")
-	
-
-	# Test generation:
-	# L = Lattice(4,4)
-	# print L.alleleCounts
-
-	# # runGeneration(L)
-
-	# # # print L
-
-	# startDrive(L, L.lattice[1][1])
-	# print L.alleleCounts
-
-	# print L
-	# for i in range(50):
-	# 	runGeneration(L)
-	# 	print L.alleleCounts
-	# # print L
-
-	# # Test extendArray:
-	# a = [0.3, 0.4, 0.6, 0.6, 0.8, 1.0]
-	# extendArray(a, 20)
-	# print a
-	# print len(a)
-
-
-	# Test Moran Process (Fully-Connected)
-	# F = FullyConnected(100, 0.5, "AA")
-	# runSimulations(F, 3)
-	runSimulations(50)
 
 
 
