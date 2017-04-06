@@ -9,16 +9,16 @@ import copy
 import numpy as np
 
 
-fitness = {"AA" = 0.5, "AD" = 0.5, "DD" = 0.5}
-deathRates = {"AA" = 0.8, "AD" = 0.8, "DD" = 0.8}
+fitness = {"AA": 1.0, "AD": 1.0, "DD": 1.0}
+deathRates = {"AA": 1.0, "AD": 1.0, "DD": 0.0}
 
 class Graph(object):
 
-	def __init__(self):
+	def __init__(self, numNodes):
 		self.genotypes = []
-		self.totalNodes = None
-		self.totalFitness = 0.0
-		self.weights = np.matrix()
+		self.numNodes = numNodes
+		# Weights is a matrix
+		self.weights = None
 		self.selectionMatrix = None
 		self.alleleCounts = {}
 
@@ -58,45 +58,39 @@ class Graph(object):
 class Lattice(Graph):
 
 	def __init__(self, rows, cols):
-		Graph.__init__(self)
-		
+		Graph.__init__(self, rows*cols)
+		self.numRows = rows
+		self.numCols = cols
+		self.weights = [[0]*self.numNodes for i in range(self.numNodes)]
+
+		self.genotypes = ["AA"]*(rows*cols)
 
 		for r in range(rows):
 			for c in range(cols):
 				neighbors = []
 				# Being careful of the edges:
 				if r != 0:
-					neighbors.append((self.lattice[r-1][c], 1))
-				if r != rows-1:
-					neighbors.append((self.lattice[r+1][c], 1))
+					self.weights[r*rows+c][(r-1)*rows+c] = 1
+				if r != rows -1 :
+					self.weights[r*rows+c][(r+1)*rows+c] = 1
 				if c != 0:
-					neighbors.append((self.lattice[r][c-1], 1))
-				if c != cols-1:
-					neighbors.append((self.lattice[r][c+1], 1))
-				self.addNode(self.lattice[r][c], neighbors)
-
-		# Now should have normal Graph dict
-		self.calculateTotalFitness()
+					self.weights[r*rows+c][r*rows+c -1] = 1
+				if c != cols - 1:
+					self.weights[r*rows+c][r*rows+c + 1] = 1
 
 	def __str__(self):
 		s = ""
-		for row in self.lattice:
-			for node in row:
-				s += str(node) + "\n"
+		for r in range(self.numRows):
+			for c in range(self.numCols):
+				s += self.genotypes[r*c-1] + " "
+			s += "\n"
 		return s
 
 class FullyConnected(Graph):
-	def __init__(self, numNodes, fitness, deathrate, genotype):
-		Graph.__init__(self)
-		tempArray = []
-		for i in range(numNodes):
-			tempArray.append((Node(fitness, deathrate, genotype),1))
-
-		# Build the graph:
-		for node in tempArray:
-			neighbors = [n for n in tempArray]
-			neighbors.remove(node)
-			self.addNode(node, neighbors)
+	def __init__(self, numNodes):
+		Graph.__init__(self, numNodes)
+		self.weights = [[1]*self.numNodes for i in range(self.numNodes)]
+		self.genotypes = ["AA"]*(numNodes)		
 
 
 class Bipartite(Graph):
@@ -104,6 +98,24 @@ class Bipartite(Graph):
 		Graph.__init__(self)
 
 
+
 if __name__ == '__main__':
-	a = np.matrix([[1,2],[3,4]])
-	print np.multiply(a,a)
+	
+
+	# rows = 3
+	# cols = 3
+	# for r in range(rows):
+	# 	for c in range(cols):
+	# 		"R: {}, C: {}".format(r, c)
+	# 		print "Node number: ", str(r*rows+c)
+	# 		# Being careful of the edges:
+	# 		if r != 0:
+	# 			print "Above is ", str((r-1)*rows+c)
+	# 		if r != rows -1 :
+	# 			print "Below is ", str((r+1)*rows+c)
+	# 		if c != 0:
+	# 			print "Left is ", str(r*rows+c -1)
+	# 		if c != cols - 1:
+	# 			print "Right is ", str(r*rows+c + 1)
+
+
